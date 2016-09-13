@@ -35,7 +35,7 @@ $ sudo port install spring-boot-cli
 Use the Spring Boot CLI to create a project:
 
 ```
-spring init --build=gradle --package-name=com.stelligent --dependencies=web,actuator,hateoas -n Banana microservice-exemplar
+$ spring init --build=gradle --package-name=com.stelligent --dependencies=web,actuator,hateoas -n Banana microservice-exemplar
 ```
 
 # Step 3: Create a REST domain, repository, resource and controller
@@ -48,13 +48,13 @@ TODO: write the code...
 Start the app by running:
 
 ```
- gradle bootRun
+$ gradle bootRun
 ``` 
 
 Try it out:
 
 ```
-curl http://localhost:8080/bananas
+$ curl http://localhost:8080/bananas
 ```
 
 
@@ -101,14 +101,27 @@ task docker(type: Docker, dependsOn: build) {
 Then run:
 
 ```
-gradle docker
+$ gradle dockerBuild
 ```
  
 
 Run it with:
 
 ```
-docker run -p 8080:8080 -t stelligent/microservice-exemplar
+$ docker run -p 8080:8080 -t stelligent/microservice-exemplar
 ```
 
+# Step 6: Deploy to ECS
+
+Setup the stack with:
+
+```
+$ gradle stackUp
+```
+
+Push latest image to ECR with:
+```
+$ $(aws ecr get-login)
+$ docker tag stelligent/microservice-exemplar:latest 324320755747.dkr.ecr.us-west-2.amazonaws.com/microservice-exemplar
+$ docker push 324320755747.dkr.ecr.us-west-2.amazonaws.com/microservice-exemplar
 

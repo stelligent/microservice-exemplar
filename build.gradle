@@ -1,22 +1,45 @@
+
 buildscript {
 	ext {
 		springBootVersion = '1.4.0.RELEASE'
 	}
 	repositories {
 		mavenCentral()
+		maven { url "https://plugins.gradle.org/m2/" }
 	}
 	dependencies {
 		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-		classpath('se.transmode.gradle:gradle-docker:1.2')
+		classpath 'com.bmuschko:gradle-docker-plugin:3.0.3'
+		classpath('jp.classmethod.aws:gradle-aws-plugin:0.+')
+		classpath 'org.ajoberstar:grgit:1.1.0'
 	}
+}
+
+ext {
+	accountId = '324320755747'
+	templateBucket = 'stelligent-templates'
+	stackRegion = 'us-west-2'
+	stackName = project.name
+	stackInstanceType = 't2.micro'
+
+	repoUrl = "${accountId}.dkr.ecr.${stackRegion}.amazonaws.com/${project.name}"
+
+	// Get commit id of HEAD
+	revision = org.ajoberstar.grgit.Grgit.open(file('.')).head().id
+
+	serviceDesiredCount = '1'
 }
 
 group = 'stelligent'
 
-apply plugin: 'docker'
 apply plugin: 'java'
-apply plugin: 'eclipse'
+apply plugin: 'application'
 apply plugin: 'spring-boot'
+apply plugin: 'com.bmuschko.docker-java-application'
+apply plugin: "jp.classmethod.aws.s3"
+apply plugin: "jp.classmethod.aws.cloudformation"
+
+
 
 jar {
 	baseName = 'microservice-exemplar'
@@ -38,16 +61,117 @@ dependencies {
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 }
 
-
-
-task docker(type: Docker, dependsOn: build) {
-	push = false
-	applicationName = jar.baseName
-	dockerfile = file('src/main/docker/Dockerfile')
-	doFirst {
-		copy {
-			from jar
-			into stageDir
+// SEE: https://github.com/bmuschko/gradle-docker-plugin/issues/235
+configurations {
+	dockerJava {
+		resolutionStrategy {
+			force 'de.gesellix:unix-socket-factory:2016-04-06T22-21-19'
 		}
 	}
+}
+
+import groovy.json.JsonSlurper
+docker {
+	url = 'unix:///var/run/docker.sock'
+	javaApplication {
+		baseImage = 'java:8'
+		maintainer = 'Casey Lee "casey.lee@stelligent.com"'
+		ports = [8080]
+		tag = "${project.repoUrl}:${project.revision}"
+	}
+	registryCredentials {
+		def ecrAuthData = new JsonSlurper().parseText('aws ecr get-authorization-token'.execute().text).authorizationData[0]
+		def credentials = new String(ecrAuthData.authorizationToken.decodeBase64()).tokenize(':')
+
+		username = credentials[0]
+		password = credentials[1]
+		url = ecrAuthData.proxyEndpoint
+	}
+}
+
+
+aws {
+	region project.stackRegion
+}
+
+
+import jp.classmethod.aws.gradle.s3.SyncTask;
+task syncTemplates(type: SyncTask) {
+	source file("src/main/cloudformation")
+	bucketName project.templateBucket
+	prefix "${project.stackName}/"
+}
+
+import jp.classmethod.aws.gradle.cloudformation.AmazonCloudFormationMigrateStackTask
+import com.amazonaws.services.cloudformation.model.Parameter;
+def stackParams = []
+task baseStackParams {
+	stackParams << new Parameter()
+			.withParameterKey('TemplateBucketName')
+			.withParameterValue(project.templateBucket)
+	stackParams << new Parameter()
+			.withParameterKey('InstanceType')
+			.withParameterValue(project.stackInstanceType)
+	if(project.hasProperty('stackKeyName')) {
+		stackParams << new Parameter()
+				.withParameterKey('KeyName')
+				.withParameterValue(project.stackKeyName)
+	} else {
+		stackParams << new Parameter()
+				.withParameterKey('KeyName')
+				.withUsePreviousValue(true)
+	}
+}
+
+task launchStackParams {
+	dependsOn baseStackParams
+	stackParams << new Parameter()
+			.withParameterKey('ServiceDesiredCount')
+			.withUsePreviousValue(true)
+	stackParams << new Parameter()
+			.withParameterKey('TaskImageTag')
+			.withUsePreviousValue(true)
+}
+
+task deployStackParams {
+	dependsOn baseStackParams
+	stackParams << new Parameter()
+			.withParameterKey('ServiceDesiredCount')
+			.withParameterValue(project.serviceDesiredCount)
+	stackParams << new Parameter()
+			.withParameterKey('TaskImageTag')
+			.withParameterValue(project.revision)
+}
+
+task upsertStack(type: AmazonCloudFormationMigrateStackTask) {
+	dependsOn syncTemplates
+	capabilityIam true
+	stackName project.stackName
+	cfnTemplateUrl "https://s3-${project.stackRegion}.amazonaws.com/${project.templateBucket}/${project.stackName}/main.template"
+	cfnStackParams = stackParams
+	print "update stack: ${stackParams}"
+}
+
+import jp.classmethod.aws.gradle.cloudformation.AmazonCloudFormationWaitStackStatusTask
+task stackUp(type: AmazonCloudFormationWaitStackStatusTask, dependsOn: ['launchStackParams','upsertStack']) {
+	stackName project.stackName
+	group 'AWS'
+	description 'Deploys full-stack ${artifactId} environment to AWS'
+}
+task stackDeploy(type: AmazonCloudFormationWaitStackStatusTask, dependsOn: ['dockerPushImage', 'deployStackParams','upsertStack']) {
+	stackName project.stackName
+	group 'AWS'
+	description 'Deploys full-stack ${artifactId} environment to AWS'
+}
+
+import jp.classmethod.aws.gradle.cloudformation.AmazonCloudFormationDeleteStackTask
+task deleteStack(type: AmazonCloudFormationDeleteStackTask) {
+	stackName project.stackName
+}
+
+task stackDown(type: AmazonCloudFormationWaitStackStatusTask) {
+	stackName project.stackName
+	dependsOn deleteStack
+	group 'AWS'
+	description 'Undeploys full-stack ${artifactId} environment on AWS'
 }

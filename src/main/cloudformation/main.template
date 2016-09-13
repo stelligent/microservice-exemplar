@@ -1,0 +1,82 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "TemplateBucketName":{
+      "Type":"String",
+      "Description":"S3 bucket name for all the CloudFormation templates used by this template.",
+      "Default": "stelligent-templates"
+    },
+    "KeyName":{
+      "Type":"String",
+      "Description":"KeyName to associate with worker instances.  Leave blank to disable SSH access.",
+      "Default": ""
+    },
+    "InstanceType":{
+      "Type":"String",
+      "Description":"Instance type to use.",
+      "Default": "t2.micro"
+    },
+    "ServiceDesiredCount":{
+      "Type":"Number",
+      "Default":"0",
+      "Description":"Number of containers to launch in your ECS service."
+    },
+    "TaskImageTag":{
+      "Type":"String",
+      "Default":"latest",
+      "Description":"Tag to use for task definition."
+    }
+  },
+  "Mappings" : {
+    "EndpointMap" : {
+      "us-east-1": {
+        "s3": "https://s3.amazonaws.com"
+      },
+      "us-west-2": {
+        "s3": "https://s3-us-west-2.amazonaws.com"
+      },
+      "eu-west-1": {
+        "s3": "https://s3-eu-west-1.amazonaws.com"
+      },
+      "ap-northeast-1": {
+        "s3": "https://s3-ap-northeast-1.amazonaws.com"
+      }
+    }
+  },
+  "Resources": {
+    "VPCStack":{
+      "Type":"AWS::CloudFormation::Stack",
+      "Properties":{
+        "TemplateURL": { "Fn::Join": ["/", [{ "Fn::FindInMap":[ "EndpointMap", { "Ref":"AWS::Region" }, "s3" ] }, { "Ref":"TemplateBucketName"}, {"Ref":"AWS::StackName"},"vpc.template"]] },
+        "TimeoutInMinutes":"60",
+        "Parameters": {
+        }
+      }
+    },
+    "ECSStack":{
+      "Type":"AWS::CloudFormation::Stack",
+      "Properties":{
+        "TemplateURL": { "Fn::Join": ["/", [{ "Fn::FindInMap":[ "EndpointMap", { "Ref":"AWS::Region" }, "s3" ] }, { "Ref":"TemplateBucketName"}, {"Ref":"AWS::StackName"},"ecs.template"]] },
+        "TimeoutInMinutes":"60",
+        "Parameters":{
+          "KeyName":  {"Ref": "KeyName"},
+          "VPCId": {"Fn::GetAtt":["VPCStack","Outputs.VPCId"]},
+          "InstanceType": {"Ref": "InstanceType"},
+          "Subnets": {"Fn::GetAtt":["VPCStack","Outputs.PublicSubnets"]},
+          "TaskImageTag": {"Ref": "TaskImageTag"},
+          "ServiceDesiredCount": {"Ref": "ServiceDesiredCount"}
+        }
+      }
+    }
+  },
+  "Outputs":{
+    "RepoUrl":{
+      "Value": { "Fn::GetAtt": ["ECSStack","Outputs.RepoUrl"]},
+      "Description":"URL of the ECR repository"
+    },
+    "AppUrl":{
+      "Value": { "Fn::GetAtt": ["ECSStack","Outputs.AppUrl"]},
+      "Description":"URL of the application"
+    }
+  }
+}
