@@ -119,9 +119,7 @@ Setup the stack with:
 $ gradle stackUp
 ```
 
-Push latest image to ECR with:
+Push latest image to ECR and update the ECS service:
 ```
-$ $(aws ecr get-login)
-$ docker tag stelligent/microservice-exemplar:latest 324320755747.dkr.ecr.us-west-2.amazonaws.com/microservice-exemplar
-$ docker push 324320755747.dkr.ecr.us-west-2.amazonaws.com/microservice-exemplar
-
+$ gradle stackDeploy
+```
