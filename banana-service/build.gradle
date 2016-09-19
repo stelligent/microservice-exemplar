@@ -1,0 +1,78 @@
+
+buildscript {
+	ext {
+		springBootVersion = '1.4.0.RELEASE'
+	}
+	repositories {
+		mavenCentral()
+		maven { url "https://plugins.gradle.org/m2/" }
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath 'com.bmuschko:gradle-docker-plugin:3.0.3'
+		classpath 'org.ajoberstar:grgit:1.1.0'
+	}
+}
+
+ext {
+	accountId = '324320755747'
+	stackRegion = 'us-west-2'
+
+	repoUrl = "${accountId}.dkr.ecr.${stackRegion}.amazonaws.com/${project.name}"
+
+	// Get commit id of HEAD
+	revision = org.ajoberstar.grgit.Grgit.open(file('.')).head().id
+
+	serviceDesiredCount = '1'
+}
+
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'spring-boot'
+apply plugin: 'com.bmuschko.docker-java-application'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+}
+
+
+dependencies {
+	compile('org.springframework.boot:spring-boot-starter-actuator')
+	compile('org.springframework.boot:spring-boot-starter-web')
+	compile("org.springframework.boot:spring-boot-starter-hateoas")
+	compile('com.fasterxml.jackson.datatype:jackson-datatype-jsr310')
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+}
+
+// SEE: https://github.com/bmuschko/gradle-docker-plugin/issues/235
+configurations {
+	dockerJava {
+		resolutionStrategy {
+			force 'de.gesellix:unix-socket-factory:2016-04-06T22-21-19'
+		}
+	}
+}
+
+import groovy.json.JsonSlurper
+docker {
+	url = 'unix:///var/run/docker.sock'
+	javaApplication {
+		baseImage = 'java:8'
+		maintainer = 'Casey Lee "casey.lee@stelligent.com"'
+		ports = [8080]
+		tag = "${project.repoUrl}:${project.revision}"
+	}
+	registryCredentials {
+		def ecrAuthData = new JsonSlurper().parseText('aws ecr get-authorization-token'.execute().text).authorizationData[0]
+		def credentials = new String(ecrAuthData.authorizationToken.decodeBase64()).tokenize(':')
+
+		username = credentials[0]
+		password = credentials[1]
+		url = ecrAuthData.proxyEndpoint
+	}
+}
+
+

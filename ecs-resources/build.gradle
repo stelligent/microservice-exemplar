@@ -1,0 +1,80 @@
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath('jp.classmethod.aws:gradle-aws-plugin:0.+')
+    }
+}
+
+ext {
+    accountId = '324320755747'
+    stackRegion = 'us-west-2'
+    stackName = project.name
+    stackInstanceType = 't2.micro'
+}
+
+apply plugin: "jp.classmethod.aws.s3"
+apply plugin: "jp.classmethod.aws.cloudformation"
+
+
+aws {
+    region project.stackRegion
+}
+
+
+import jp.classmethod.aws.gradle.cloudformation.AmazonCloudFormationMigrateStackTask
+import com.amazonaws.services.cloudformation.model.Parameter;
+task upsertStack(type: AmazonCloudFormationMigrateStackTask) {
+    def stackParams = []
+    stackParams << new Parameter()
+            .withParameterKey('InstanceType')
+            .withParameterValue(project.stackInstanceType)
+    if(project.hasProperty('stackKeyName')) {
+        stackParams << new Parameter()
+                .withParameterKey('KeyName')
+                .withParameterValue(project.stackKeyName)
+    } else {
+        stackParams << new Parameter()
+                .withParameterKey('KeyName')
+                .withUsePreviousValue(true)
+    }
+    dependsOn syncTemplates
+    capabilityIam true
+    stackName project.stackName
+    cfnTemplateUrl "platform.template"
+    cfnStackParams = stackParams
+    print "update stack: ${stackParams}"
+}
+
+import jp.classmethod.aws.gradle.cloudformation.AmazonCloudFormationWaitStackStatusTask
+task stackUp(type: AmazonCloudFormationWaitStackStatusTask, dependsOn: ['launchStackParams','upsertStack']) {
+    stackName project.stackName
+    group 'AWS'
+    description 'Deploys full-stack ${artifactId} environment to AWS'
+}
+
+import jp.classmethod.aws.gradle.cloudformation.AmazonCloudFormationDeleteStackTask
+task deleteStack(type: AmazonCloudFormationDeleteStackTask) {
+    stackName project.stackName
+}
+
+task stackDown(type: AmazonCloudFormationWaitStackStatusTask) {
+    stackName project.stackName
+    dependsOn deleteStack
+    group 'AWS'
+    description 'Undeploys full-stack ${artifactId} environment on AWS'
+}
+
+task serviceInit {
+    // TODO: fetch "EcsElbListenerArn" and"VPCId" from platform stack
+    // TODO: Upsert app stack, also passing in "PathPattern" and "RepoName"
+}
+task serviceDeploy {
+    // TODO: fetch "EcsCluster" from platform stack
+    // TODO: fetch "EcsElbTargetGroupArn", "RepoUrl" from repo stack
+
+    // TODO: Upsert app stack, also passing in "ServiceDesiredCount", "ImageUrl (RepoUrl + tag)"
+}
