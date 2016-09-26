@@ -21,7 +21,7 @@ ext {
 	repoUrl = "${accountId}.dkr.ecr.${stackRegion}.amazonaws.com/${project.name}"
 
 	// Get commit id of HEAD
-	revision = org.ajoberstar.grgit.Grgit.open(file('.')).head().id
+	revision = org.ajoberstar.grgit.Grgit.open(file('..')).head().id
 
 	serviceDesiredCount = '1'
 }

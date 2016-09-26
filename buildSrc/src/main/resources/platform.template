@@ -543,8 +543,20 @@
         "LoadBalancerArn": {
           "Ref": "EcsElb"
         },
+        "DefaultActions": [{
+          "Type": "forward",
+          "TargetGroupArn": { "Ref": "EcsElbDefaultTargetGroup" }
+        }],
         "Port": "80",
         "Protocol": "HTTP"
+      }
+    },
+    "EcsElbDefaultTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Port": "8080",
+        "Protocol": "HTTP",
+        "VpcId": {"Ref": "VPC"}
       }
     }
   },

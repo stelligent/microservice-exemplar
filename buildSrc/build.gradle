@@ -1,0 +1,12 @@
+
+repositories {
+    mavenCentral()
+}
+
+apply plugin: 'java'
+
+dependencies {
+    compile group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.11.37'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk-cloudformation', version: '1.11.37'
+}
+
