@@ -1,118 +1,72 @@
-{
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Parameters": {
-    "ImageUrl":{
-      "Type":"String",
-      "Description":"Docker Image URL"
-    },
-    "ServiceDesiredCount":{
-      "Type":"Number",
-      "Default":"2",
-      "Description":"Number of containers to launch in your ECS service."
-    },
-    "EcsCluster":{
-      "Type":"String",
-      "Description":"Name of the Ecs Cluster to deploy to."
-    },
-    "EcsElbTargetGroupArn":{
-      "Type":"String",
-      "Description":"Arn of the ELB listener to attach the target group to."
-    }
-  },
-  "Resources": {
-    "EcsService":{
-      "Type":"AWS::ECS::Service",
-      "Properties":{
-        "Cluster":{
-          "Ref":"EcsCluster"
-        },
-        "DesiredCount":{"Ref": "ServiceDesiredCount"},
-        "DeploymentConfiguration":{
-          "MaximumPercent":100,
-          "MinimumHealthyPercent":0
-        },
-        "LoadBalancers":[
-          {
-            "ContainerName":"microservice-exemplar-container",
-            "ContainerPort":"8080",
-            "TargetGroupArn":{
-              "Ref":"EcsElbTargetGroupArn"
-            }
-          }
-        ],
-        "Role":{
-          "Ref":"EcsServiceRole"
-        },
-        "TaskDefinition":{
-          "Ref":"MicroserviceTaskDefinition"
-        }
-      }
-    },
-    "EcsServiceRole":{
-      "Type":"AWS::IAM::Role",
-      "Properties":{
-        "AssumeRolePolicyDocument":{
-          "Statement":[
-            {
-              "Effect":"Allow",
-              "Principal":{
-                "Service":[
-                  "ecs.amazonaws.com"
-                ]
-              },
-              "Action":[
-                "sts:AssumeRole"
-              ]
-            }
-          ]
-        },
-        "Path":"/",
-        "Policies":[
-          {
-            "PolicyName":"ecs-service",
-            "PolicyDocument":{
-              "Statement":[
-                {
-                  "Effect":"Allow",
-                  "Action":[
-                    "ec2:AuthorizeSecurityGroupIngress",
-                    "ec2:Describe*",
-                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                    "elasticloadbalancing:Describe*",
-                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-                    "elasticloadbalancing:DeregisterTargets",
-                    "elasticloadbalancing:DescribeTargetGroups",
-                    "elasticloadbalancing:DescribeTargetHealth",
-                    "elasticloadbalancing:RegisterTargets"
-                  ],
-                  "Resource":"*"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "MicroserviceTaskDefinition":{
-      "Type":"AWS::ECS::TaskDefinition",
-      "Properties":{
-        "ContainerDefinitions":[
-          {
-            "Name":"microservice-exemplar-container",
-            "Cpu":"10",
-            "Essential":"true",
-            "Image": { "Ref": "ImageUrl" },
-            "Memory":"300",
-            "PortMappings":[
-              {
-                "HostPort":0,
-                "ContainerPort":8080
-              }
-            ]
-          }
-        ],
-        "Volumes":[]
-      }
-    }
-  }
-}
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ImageUrl:
+    Type: String
+    Description: Docker Image URL
+  ServiceDesiredCount:
+    Type: Number
+    Default: '2'
+    Description: Number of containers to launch in your ECS service.
+  EcsCluster:
+    Type: String
+    Description: Name of the Ecs Cluster to deploy to.
+  EcsElbTargetGroupArn:
+    Type: String
+    Description: Arn of the ELB listener to attach the target group to.
+Resources:
+  EcsService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref EcsCluster
+      DesiredCount: !Ref ServiceDesiredCount
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      LoadBalancers:
+      - ContainerName: microservice-exemplar-container
+        ContainerPort: '8080'
+        TargetGroupArn: !Ref EcsElbTargetGroupArn
+      Role: !Ref EcsServiceRole
+      TaskDefinition: !Ref MicroserviceTaskDefinition
+  EcsServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:AuthorizeSecurityGroupIngress
+            - ec2:Describe*
+            - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+            - elasticloadbalancing:Describe*
+            - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+            - elasticloadbalancing:DeregisterTargets
+            - elasticloadbalancing:DescribeTargetGroups
+            - elasticloadbalancing:DescribeTargetHealth
+            - elasticloadbalancing:RegisterTargets
+            Resource: "*"
+  MicroserviceTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+      - Name: microservice-exemplar-container
+        Cpu: '10'
+        Essential: 'true'
+        Image: !Ref ImageUrl
+        Memory: '300'
+        PortMappings:
+        - HostPort: 0
+          ContainerPort: 8080
+      Volumes: []
