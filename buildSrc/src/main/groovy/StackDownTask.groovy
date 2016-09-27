@@ -10,12 +10,12 @@ import com.amazonaws.regions.Regions
 
 class StackDownTask extends DefaultTask {
     def stackName
-    def stackRegion
+    def region
 
     @TaskAction
     def deleteStack() {
         AmazonCloudFormation stackbuilder = new AmazonCloudFormationClient()
-        stackbuilder.setRegion(Region.getRegion(Regions.fromName(stackRegion)))
+        stackbuilder.setRegion(Region.getRegion(Regions.fromName(region)))
         print("Deleting a stack named ${stackName}.")
 
         stackbuilder.deleteStack(new DeleteStackRequest().withStackName(stackName))

@@ -75,4 +75,60 @@ docker {
 	}
 }
 
+task repoUp(type: StackUpTask) {
+	group 'AWS'
+	description "Deploys repo stack '${project.stackBaseName}-repo-${project.name}' environment to AWS"
+	region project.region
+	stackName "${project.stackBaseName}-repo-${project.name}"
+	template file("../ecs-resources/repo.template")
+	waitForComplete true
+	capabilityIam true
 
+	def platformOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-platform")
+
+	stackParams['PathPattern'] ='/bananas'
+	stackParams['RepoName'] = project.name
+	stackParams['EcsElbListenerArn'] = platformOutputs['EcsElbListenerArn']
+	stackParams['VPCId'] = platformOutputs['VPCId']
+}
+dockerPushImage.dependsOn repoUp
+
+task repoDown(type: StackDownTask, dependsOn: ['serviceDown']) {
+	group 'AWS'
+	description "Undeploys repo stack '${project.stackBaseName}-repo-${project.name}' environment on AWS"
+	region project.region
+	stackName "${project.stackBaseName}-repo-${project.name}"
+}
+
+task serviceUp(type: StackUpTask) {
+	group 'AWS'
+	description "Deploys service stack '${project.stackBaseName}-service-${project.name}' environment to AWS"
+	region project.region
+	stackName "${project.stackBaseName}-service-${project.name}"
+	template file("../ecs-resources/service.template")
+	waitForComplete true
+	capabilityIam true
+
+	def platformOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-platform")
+	def repoOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-repo-${project.name}")
+	stackParams['EcsCluster'] = platformOutputs['EcsCluster']
+	stackParams['EcsElbTargetGroupArn'] =repoOutputs['EcsElbTargetGroupArn']
+	stackParams['ServiceDesiredCount'] = project.serviceDesiredCount
+	stackParams['ImageUrl'] = "${project.repoUrl}:${project.revision}"
+
+	mustRunAfter dockerPushImage
+}
+
+
+
+task serviceDown(type: StackDownTask) {
+	group 'AWS'
+	description "Undeploys service stack '${project.stackBaseName}-service-${project.name}' environment on AWS"
+	region project.region
+	stackName "${project.stackBaseName}-service-${project.name}"
+}
+
+
+task deploy(dependsOn: ['dockerPushImage', 'serviceUp']) {
+	description "Upserts the repo stack, pushes a docker image, then upserts the service stack"
+}

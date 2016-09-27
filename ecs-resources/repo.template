@@ -4,7 +4,6 @@ Parameters:
   RepoName:
     Type: String
     Description: Repo name
-    Default: microservice-exemplar
   VPCId:
     Type: AWS::EC2::VPC::Id
     Description: VPC to configure the target group in.

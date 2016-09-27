@@ -12,13 +12,14 @@ import com.amazonaws.services.cloudformation.model.Parameter
 import com.amazonaws.waiters.WaiterParameters
 import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
+import com.amazonaws.services.cloudformation.model.AmazonCloudFormationException
 
 
 
 class StackUpTask extends DefaultTask {
     def stackName
-    def stackRegion
-    def template
+    def region
+    File template
     boolean waitForComplete
     boolean capabilityIam
     def stackParams = [:]
@@ -26,7 +27,7 @@ class StackUpTask extends DefaultTask {
     @TaskAction
     def upsertStack() {
         AmazonCloudFormation stackbuilder = new AmazonCloudFormationClient()
-        stackbuilder.setRegion(Region.getRegion(Regions.fromName(stackRegion)))
+        stackbuilder.setRegion(Region.getRegion(Regions.fromName(this.region)))
 
         if(stackExists(stackbuilder)) {
             updateStack(stackbuilder)
@@ -39,7 +40,7 @@ class StackUpTask extends DefaultTask {
     def createStack(AmazonCloudFormation stackbuilder) {
         CreateStackRequest createRequest = new CreateStackRequest()
         createRequest.setStackName(stackName)
-        createRequest.setTemplateBody( this.getClass().getResource(template).text )
+        createRequest.setTemplateBody( template.text )
         if(capabilityIam) {
             createRequest.withCapabilities(Capability.CAPABILITY_IAM)
         }
@@ -70,7 +71,7 @@ class StackUpTask extends DefaultTask {
     def updateStack(AmazonCloudFormation stackbuilder) {
         UpdateStackRequest updateRequest = new UpdateStackRequest()
         updateRequest.setStackName(stackName)
-        updateRequest.setTemplateBody( this.getClass().getResource(template).text )
+        updateRequest.setTemplateBody( template.text )
         if(capabilityIam) {
             updateRequest.withCapabilities(Capability.CAPABILITY_IAM)
         }
@@ -88,13 +89,19 @@ class StackUpTask extends DefaultTask {
         updateRequest.setParameters(params)
 
         print("Updating a stack named ${stackName}.")
-        stackbuilder.updateStack(updateRequest)
+        try {
+            stackbuilder.updateStack(updateRequest)
 
-        if(waitForComplete) {
-            print("Waiting for stack update to complete...")
-            DescribeStacksRequest req = new DescribeStacksRequest()
-            req.setStackName(stackName)
-            new AmazonCloudFormationWaiters(stackbuilder).stackUpdateComplete().run(new WaiterParameters(req))
+            if(waitForComplete) {
+                print("Waiting for stack update to complete...")
+                DescribeStacksRequest req = new DescribeStacksRequest()
+                req.setStackName(stackName)
+                new AmazonCloudFormationWaiters(stackbuilder).stackUpdateComplete().run(new WaiterParameters(req))
+            }
+        } catch (AmazonCloudFormationException ex) {
+            if(!ex.getErrorMessage().equals("No updates are to be performed."))  {
+                throw ex
+            }
         }
 
     }

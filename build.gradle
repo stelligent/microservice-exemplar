@@ -1,11 +1,31 @@
 group = 'stelligent'
 version = '0.0.1-SNAPSHOT'
 
-buildscript {
-    repositories {
-        mavenCentral()
+ext {
+    region    = project.hasProperty('region')    ? project.getProperty('region')    : 'us-west-2'
+    qualifier = project.hasProperty('qualifier') ? project.getProperty('qualifier') : 'develop'
+    keyName   = project.hasProperty('keyName')   ? project.getProperty('keyName')   : null
+    stackBaseName = project.hasProperty('stackBaseName') ? project.getProperty('stackBaseName') : "${project.name}-${project.qualifier}"
+}
+
+task platformUp(type: StackUpTask) {
+    group 'AWS'
+    description "Deploys platform stack '${project.stackBaseName}-platform' environment to AWS"
+    region project.region
+    stackName "${project.stackBaseName}-platform"
+    template file("ecs-resources/platform.template")
+    waitForComplete true
+    capabilityIam true
+    if(project.hasProperty('keyName')) {
+        stackParams['KeyName'] = project.keyName
+    } else {
+        stackParams['KeyName'] = null
     }
-    dependencies {
-        classpath 'com.amazonaws:aws-java-sdk-cloudformation:1.11.37'
-    }
+}
+
+task platformDown(type: StackDownTask) {
+    group 'AWS'
+    description "Undeploys platform stack '${project.stackBaseName}-platform' environment on AWS"
+    region project.region
+    stackName "${project.stackBaseName}-platform"
 }
