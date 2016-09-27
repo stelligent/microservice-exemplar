@@ -40,7 +40,7 @@ $ spring init --build=gradle --package-name=com.stelligent --dependencies=web,ac
 
 # Step 3: Create a REST domain, repository, resource and controller
 
-TODO: write the code...
+write some code...
 
 
 # Step 4: Run it locally
@@ -116,10 +116,10 @@ $ docker run -p 8080:8080 -t stelligent/microservice-exemplar
 Setup the stack with:
 
 ```
-$ gradle stackUp
+$ gradle platformUp
 ```
 
 Push latest image to ECR and update the ECS service:
 ```
-$ gradle stackDeploy
+$ gradle deploy
 ```
