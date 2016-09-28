@@ -15,9 +15,13 @@ class StackOutputs {
         req.setStackName(stackName)
 
         Map<String,String> outputs = new HashMap<>()
-        stackbuilder.describeStacks(req).getStacks().get(0).getOutputs().each({
-            outputs.put(it.outputKey, it.outputValue)
-        })
+
+        try {
+          stackbuilder.describeStacks(req).getStacks().get(0).getOutputs().each({
+              outputs.put(it.outputKey, it.outputValue)
+          })
+        } catch (AmazonCloudFormationException ex) {
+        }
 
         return outputs
     }

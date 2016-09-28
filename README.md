@@ -37,7 +37,7 @@ $ sudo port install spring-boot-cli
 Use the Spring Boot CLI to create a project:
 
 ```
-$ spring init --build=gradle --package-name=com.stelligent --dependencies=web,actuator,hateoas -n Banana microservice-exemplar
+$ spring init --build=gradle --package-name=com.stelligent --dependencies=web,actuator,hateoas -n Banana banana-service
 ```
 
 # Step 3: Create a REST domain, repository, resource and controller

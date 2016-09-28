@@ -13,6 +13,10 @@ Parameters:
   PathPattern:
     Type: CommaDelimitedList
     Description: List of paths to route to the service.
+  ListenerRulePriority:
+    Type: Number
+    Description: The priority of the rule being added to the listener
+    Default: 1
 
 Resources:
   EcsRepo:
@@ -47,7 +51,7 @@ Resources:
       - Field: path-pattern
         Values: !Ref PathPattern
       ListenerArn: !Ref EcsElbListenerArn
-      Priority: 1
+      Priority: !Ref ListenerRulePriority
   EcsElbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:

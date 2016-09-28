@@ -17,13 +17,15 @@ buildscript {
 ext {
 	accountId = '324320755747'
 	stackRegion = 'us-west-2'
+
 	repoUrl = "${accountId}.dkr.ecr.${stackRegion}.amazonaws.com/${project.name}"
 
 	// Get commit id of HEAD
 	revision = org.ajoberstar.grgit.Grgit.open(file('..')).head().id
 
 	serviceDesiredCount = '1'
-	listenerRulePriority = '1'
+
+	listenerRulePriority = '2'
 }
 
 apply plugin: 'java'
@@ -86,7 +88,7 @@ task repoUp(type: StackUpTask) {
 
 	def platformOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-platform")
 
-	stackParams['PathPattern'] ='/bananas'
+	stackParams['PathPattern'] ='/milkshakes'
 	stackParams['RepoName'] = project.name
 	stackParams['EcsElbListenerArn'] = platformOutputs['EcsElbListenerArn']
 	stackParams['VPCId'] = platformOutputs['VPCId']
