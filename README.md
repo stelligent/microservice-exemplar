@@ -62,15 +62,6 @@ $ curl http://localhost:8080/bananas
 
 # Step 5: Create a Docker image
 
-Create a dockerfile:
-
-```
-  FROM java:8
-  MAINTAINER Casey Lee email: casey.lee@stelligent.com
-  ADD microservice-exemplar-0.1.0.jar app.jar
-  ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
-```
-
 Update gradle to build the docker image:
 
 ```
@@ -78,39 +69,49 @@ buildscript {
     ...
     dependencies {
         ...
-        classpath('se.transmode.gradle:gradle-docker:1.2')
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath 'com.bmuschko:gradle-docker-plugin:3.0.3'
     }
 }
 
 group = 'stelligent'
 
 ...
-apply plugin: 'docker'
 
-task docker(type: Docker, dependsOn: build) {
-  push = false
-  applicationName = jar.baseName
-  dockerfile = file('src/main/docker/Dockerfile')
-  doFirst {
-    copy {
-      from jar
-      into stageDir
-    }
-  }
+apply plugin: 'application'
+apply plugin: 'spring-boot'
+apply plugin: 'com.bmuschko.docker-java-application'
+
+docker {
+	url = 'unix:///var/run/docker.sock'
+	javaApplication {
+		baseImage = 'java:8'
+		maintainer = 'Casey Lee "casey.lee@stelligent.com"'
+		ports = [8080]
+		tag = "${project.repoUrl}:${project.revision}"
+	}
+	registryCredentials {
+		def ecrAuthData = new JsonSlurper().parseText('aws ecr get-authorization-token'.execute().text).authorizationData[0]
+		def credentials = new String(ecrAuthData.authorizationToken.decodeBase64()).tokenize(':')
+
+		username = credentials[0]
+		password = credentials[1]
+		url = ecrAuthData.proxyEndpoint
+	}
 }
 ```
 
 Then run:
 
 ```
-$ gradle dockerBuild
+$ gradle dockerBuildImage
 ```
  
 
 Run it with:
 
 ```
-$ docker run -p 8080:8080 -t stelligent/microservice-exemplar
+$ docker run -p 8080:8080 -t stelligent/banana-service
 ```
 
 # Step 6: Deploy to ECS
