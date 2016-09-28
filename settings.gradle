@@ -1,3 +1,2 @@
-include 'ecs-resources'
 include 'banana-service'
 
