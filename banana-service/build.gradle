@@ -66,7 +66,7 @@ docker {
 		tag = "${project.repoUrl}:${project.revision}"
 	}
 	registryCredentials {
-		def ecrAuthData = new JsonSlurper().parseText('/usr/local/aws/bin/aws ecr get-authorization-token'.execute().text).authorizationData[0]
+		def ecrAuthData = EcrAuthorization.get(project.stackRegion)[0]
 		def credentials = new String(ecrAuthData.authorizationToken.decodeBase64()).tokenize(':')
 
 		username = credentials[0]
@@ -84,7 +84,7 @@ task repoUp(type: StackUpTask) {
 	waitForComplete true
 	capabilityIam true
 
-	def platformOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-platform")
+	def platformOutputs = StackOutputs.get(project.stackRegion, "${project.stackBaseName}-platform")
 
 	stackParams['PathPattern'] ='/bananas'
 	stackParams['RepoName'] = project.name

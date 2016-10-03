@@ -17,10 +17,11 @@ class StackOutputs {
         Map<String,String> outputs = new HashMap<>()
 
         try {
-          stackbuilder.describeStacks(req).getStacks().get(0).getOutputs().each({
-              outputs.put(it.outputKey, it.outputValue)
-          })
+            stackbuilder.describeStacks(req).getStacks().get(0).getOutputs().each({
+                outputs.put(it.outputKey, it.outputValue)
+            })
         } catch (AmazonCloudFormationException ex) {
+        } catch (Error ex) {
         }
 
         return outputs
