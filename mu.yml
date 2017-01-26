@@ -1,0 +1,15 @@
+---
+region: us-west-2
+environments:
+  - name: dev
+    loadbalancer:
+      hostname: api-dev.example.com
+    cluster:
+      desiredCapacity: 1
+      maxSize: 2
+  - name: production
+    loadbalancer:
+      hostname: api.example.com
+    cluster:
+      desiredCapacity: 2
+      maxSize: 5

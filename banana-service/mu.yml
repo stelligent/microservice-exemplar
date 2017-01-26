@@ -1,0 +1,6 @@
+---
+region: us-west-2
+service:
+  pathPatterns:
+    - /bananas
+
