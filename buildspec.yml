@@ -5,3 +5,10 @@ phases:
   build:
     commands:
       - gradle build
+
+
+artifacts:
+  files:
+    - banana-service/build/libs/*
+    - banana-service/Dockerfile
+    - banana-service/mu.yml
