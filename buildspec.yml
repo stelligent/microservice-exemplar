@@ -3,8 +3,6 @@ version: 0.1
 phases:
   build:
     commands:
-      - sh gradlew
-  post_build:
-    commands:
+      - gradle
       - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
       - mu -c banana-service/mu.yml svc push
