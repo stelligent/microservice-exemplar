@@ -6,8 +6,13 @@ environment_variables:
     DOCKER_HOST: "tcp://127.0.0.1:2375"
 
 phases:
+  install:
+    commands:
+      - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
   build:
     commands:
-      - gradle
-      - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
+      - gradle build
+      - docker info
+      - docker images
+      - docker ps
       - mu -c banana-service/mu.yml svc push
