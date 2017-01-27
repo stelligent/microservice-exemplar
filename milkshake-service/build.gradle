@@ -9,29 +9,12 @@ buildscript {
 	}
 	dependencies {
 		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-		classpath 'com.bmuschko:gradle-docker-plugin:3.0.3'
-		classpath 'org.ajoberstar:grgit:1.1.0'
 	}
-}
-
-ext {
-	accountId = '324320755747'
-	stackRegion = 'us-west-2'
-
-	repoUrl = "${accountId}.dkr.ecr.${stackRegion}.amazonaws.com/${project.name}"
-
-	// Get commit id of HEAD
-	revision = org.ajoberstar.grgit.Grgit.open(file('..')).head().id
-
-	serviceDesiredCount = '1'
-
-	listenerRulePriority = '2'
 }
 
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'spring-boot'
-apply plugin: 'com.bmuschko.docker-java-application'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -49,89 +32,3 @@ dependencies {
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 }
 
-// SEE: https://github.com/bmuschko/gradle-docker-plugin/issues/235
-configurations {
-	dockerJava {
-		resolutionStrategy {
-			force 'de.gesellix:unix-socket-factory:2016-04-06T22-21-19'
-		}
-	}
-}
-
-import groovy.json.JsonSlurper
-docker {
-	url = 'unix:///var/run/docker.sock'
-	javaApplication {
-		baseImage = 'java:8'
-		maintainer = 'Casey Lee "casey.lee@stelligent.com"'
-		ports = [8080]
-		tag = "${project.repoUrl}:${project.revision}"
-	}
-	registryCredentials {
-		def ecrAuthData = EcrAuthorization.get(project.stackRegion)[0]
-		def credentials = new String(ecrAuthData.authorizationToken.decodeBase64()).tokenize(':')
-
-		username = credentials[0]
-		password = credentials[1]
-		url = ecrAuthData.proxyEndpoint
-	}
-}
-
-task repoUp(type: StackUpTask) {
-	group 'AWS'
-	description "Deploys repo stack '${project.stackBaseName}-repo-${project.name}' environment to AWS"
-	region project.region
-	stackName "${project.stackBaseName}-repo-${project.name}"
-	template file("../ecs-resources/repo.template")
-	waitForComplete true
-	capabilityIam true
-
-	def platformOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-platform")
-
-	stackParams['PathPattern'] ='/milkshakes'
-	stackParams['RepoName'] = project.name
-	stackParams['EcsElbListenerArn'] = platformOutputs['EcsElbListenerArn']
-	stackParams['VPCId'] = platformOutputs['VPCId']
-	stackParams['ListenerRulePriority'] = project.listenerRulePriority
-}
-dockerPushImage.dependsOn repoUp
-
-task repoDown(type: StackDownTask, dependsOn: ['serviceDown']) {
-	group 'AWS'
-	description "Undeploys repo stack '${project.stackBaseName}-repo-${project.name}' environment on AWS"
-	region project.region
-	stackName "${project.stackBaseName}-repo-${project.name}"
-}
-
-task serviceUp(type: StackUpTask) {
-	group 'AWS'
-	description "Deploys service stack '${project.stackBaseName}-service-${project.name}' environment to AWS"
-	region project.region
-	stackName "${project.stackBaseName}-service-${project.name}"
-	template file("../ecs-resources/service.template")
-	waitForComplete true
-	capabilityIam true
-
-	def platformOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-platform")
-	def repoOutputs = StackOutputs.get(project.region, "${project.stackBaseName}-repo-${project.name}")
-	stackParams['EcsCluster'] = platformOutputs['EcsCluster']
-	stackParams['EcsElbTargetGroupArn'] =repoOutputs['EcsElbTargetGroupArn']
-	stackParams['ServiceDesiredCount'] = project.serviceDesiredCount
-	stackParams['ImageUrl'] = "${project.repoUrl}:${project.revision}"
-
-	mustRunAfter dockerPushImage
-}
-
-
-
-task serviceDown(type: StackDownTask) {
-	group 'AWS'
-	description "Undeploys service stack '${project.stackBaseName}-service-${project.name}' environment on AWS"
-	region project.region
-	stackName "${project.stackBaseName}-service-${project.name}"
-}
-
-
-task deploy(dependsOn: ['dockerPushImage', 'serviceUp']) {
-	description "Upserts the repo stack, pushes a docker image, then upserts the service stack"
-}
