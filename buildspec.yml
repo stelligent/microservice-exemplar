@@ -3,7 +3,7 @@ version: 0.1
 phases:
   build:
     commands:
-      - ./gradlew
+      - sh gradlew
   post_build:
     commands:
       - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
