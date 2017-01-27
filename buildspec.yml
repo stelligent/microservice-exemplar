@@ -1,5 +1,10 @@
 version: 0.1
 
+
+environment_variables:
+  plaintext:
+    DOCKER_HOST: "tcp://127.0.0.1:2375"
+
 phases:
   build:
     commands:
