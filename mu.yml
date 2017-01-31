@@ -3,16 +3,10 @@ region: us-west-2
 
 environments:
   - name: dev
-    loadbalancer:
-      hostname: api-dev.example.com
     cluster:
-      desiredCapacity: 1
       maxSize: 2
   - name: production
-    loadbalancer:
-      hostname: api.example.com
     cluster:
-      desiredCapacity: 2
       maxSize: 5
 
 service:
@@ -22,6 +16,5 @@ service:
   pipeline:
     sourceRepo: stelligent/microservice-exemplar
     sourceBranch: mu
-    buildImage: aws/codebuild/java
-    buildImageVersion: openjdk-8
+    buildImage: aws/codebuild/java:openjdk-8
     muVersion: 0.1.5-develop
