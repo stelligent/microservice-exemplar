@@ -1,5 +1,6 @@
 ---
 region: us-west-2
+
 environments:
   - name: dev
     loadbalancer:
@@ -13,3 +14,14 @@ environments:
     cluster:
       desiredCapacity: 2
       maxSize: 5
+
+service:
+  name: banana-service
+  pathPatterns:
+    - /bananas
+  pipeline:
+    sourceRepo: stelligent/microservice-exemplar
+    sourceBranch: mu
+    buildImage: aws/codebuild/java
+    buildImageVersion: openjdk-8
+    muVersion: 0.1.5-develop
