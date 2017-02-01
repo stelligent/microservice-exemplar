@@ -23,4 +23,4 @@ service:
       environment: dev
     production:
       environment: production
-    muVersion: 0.1.5-develop
+    muVersion: 0.1.6-develop
