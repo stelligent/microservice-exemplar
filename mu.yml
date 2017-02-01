@@ -14,7 +14,13 @@ service:
   pathPatterns:
     - /bananas
   pipeline:
-    sourceRepo: stelligent/microservice-exemplar
-    sourceBranch: mu
-    buildImage: aws/codebuild/java:openjdk-8
+    source:
+      repo: stelligent/microservice-exemplar
+      branch: mu
+    build:
+      image: aws/codebuild/java:openjdk-8
+    acceptance:
+      environment: dev
+    production:
+      environment: production
     muVersion: 0.1.5-develop
