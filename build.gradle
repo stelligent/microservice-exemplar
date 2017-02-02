@@ -2,6 +2,7 @@ group = 'stelligent'
 version = '0.0.1-SNAPSHOT'
 
 
+
 buildscript {
     ext {
         springBootVersion = '1.4.0.RELEASE'
@@ -26,6 +27,7 @@ repositories {
     mavenCentral()
 }
 
+jar.archiveName "banana-service.jar"
 
 dependencies {
     compile('org.springframework.boot:spring-boot-starter-actuator')
