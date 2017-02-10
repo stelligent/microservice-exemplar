@@ -1,7 +1,7 @@
 ---
 
 environments:
-  - name: dev
+  - name: sample-dev
     cluster:
       maxSize: 2
   - name: production
