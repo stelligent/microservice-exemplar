@@ -28,7 +28,7 @@
 				}
 			],
 			"request": {
-				"url": "{{BaseUrl}}/bananas  ",
+				"url": "{{BASE_URL}}/bananas  ",
 				"method": "POST",
 				"header": [
 					{
@@ -59,7 +59,7 @@
 				}
 			],
 			"request": {
-				"url": "{{BaseUrl}}/bananas  ",
+				"url": "{{BASE_URL}}/bananas  ",
 				"method": "GET",
 				"header": [
 					{

@@ -1,3 +1,5 @@
 *.iml
 .gradle/
 build/
+newman/
+env.json

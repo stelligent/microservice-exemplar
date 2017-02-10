@@ -25,6 +25,7 @@ service:
       image: aws/codebuild/java:openjdk-8
     acceptance:
       environment: dev
+      image: aws/codebuild/eb-nodejs-4.4.6-amazonlinux-64:2.1.3
     production:
       environment: production
-    muVersion: 0.1.7
+    muVersion: 0.1.8-develop
