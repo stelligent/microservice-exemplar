@@ -12,6 +12,11 @@ service:
   name: banana-service
   pathPatterns:
     - /bananas
+  environment:
+    BAR: baz
+    FOO: 
+      dev: bar-dev
+      'sample-dev': bar-sampledev
   pipeline:
     source:
       repo: stelligent/microservice-exemplar
@@ -22,4 +27,4 @@ service:
       environment: dev
     production:
       environment: production
-    muVersion: 0.1.7-develop
+    muVersion: 0.1.7
