@@ -1,7 +1,6 @@
 ---
-
 environments:
-  - name: sample-dev
+  - name: dev
     cluster:
       maxSize: 2
   - name: production
@@ -10,13 +9,9 @@ environments:
 
 service:
   name: banana-service
+  healthEndpoint: /health
   pathPatterns:
     - /bananas
-  environment:
-    BAR: baz
-    FOO: 
-      dev: bar-dev
-      'sample-dev': bar-sampledev
   pipeline:
     source:
       repo: stelligent/microservice-exemplar
@@ -24,8 +19,4 @@ service:
     build:
       image: aws/codebuild/java:openjdk-8
     acceptance:
-      environment: sample-dev
       image: aws/codebuild/eb-nodejs-4.4.6-amazonlinux-64:2.1.3
-    production:
-      environment: production
-    muVersion: 0.1.8-develop
